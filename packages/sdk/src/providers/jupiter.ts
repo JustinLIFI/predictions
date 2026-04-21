@@ -178,15 +178,49 @@ export async function createSellOrder(
 	})
 }
 
+interface RawPosition {
+	pubkey: string
+	owner: string
+	marketId: string
+	isYes: boolean
+	contracts: string
+	totalCostUsd: string
+	avgPriceUsd: string
+	valueUsd: string
+	markPriceUsd: string
+	pnlUsd: string
+	claimable: boolean
+	claimed: boolean
+	payoutUsd?: string
+}
+
+function mapPosition(raw: RawPosition): Position {
+	return {
+		positionPubkey: raw.pubkey,
+		owner: raw.owner,
+		marketId: raw.marketId,
+		side: raw.isYes ? 'yes' : 'no',
+		contracts: Number(raw.contracts),
+		totalCostUsd: Number(raw.totalCostUsd),
+		avgPriceUsd: Number(raw.avgPriceUsd),
+		valueUsd: Number(raw.valueUsd),
+		markPriceUsd: Number(raw.markPriceUsd),
+		unrealizedPnl: Number(raw.pnlUsd),
+		claimable: raw.claimable,
+		claimed: raw.claimed,
+		payoutUsd: raw.payoutUsd !== undefined ? Number(raw.payoutUsd) : undefined,
+	}
+}
+
 export async function getPositions(
 	config: ResolvedConfig,
 	ownerPubkey: string,
 ): Promise<GetPositionsResult> {
-	const raw = await request<{ data: Position[] }>(
+	const raw = await request<{ data: RawPosition[] }>(
 		config,
 		`/positions?ownerPubkey=${encodeURIComponent(ownerPubkey)}`,
 	)
-	return { positions: raw.data }
+	return { positions: raw.data.map(mapPosition) }
 }
 
 export async function getHistory(

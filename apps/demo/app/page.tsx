@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
+import { ClientOnly } from '../components/ClientOnly'
 import { MarketBrowser } from '../components/MarketBrowser'
 import { PositionTracker } from '../components/PositionTracker'
 import { TradeWidget } from '../components/TradeWidget'
@@ -43,7 +44,9 @@ export default function Home() {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo_lifi_dark_horizontal.svg" alt="LI.FI" style={{ height: 22 }} />
-        <WalletMultiButton />
+        <ClientOnly>
+          <WalletMultiButton />
+        </ClientOnly>
       </header>
 
       {/* Body */}

@@ -12,6 +12,7 @@ import {
   pollOrderStatus,
 } from '@lifi/prediction-sdk'
 import { predictionClient } from '../lib/client'
+import { ClientOnly } from './ClientOnly'
 
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
 
@@ -339,7 +340,9 @@ export function TradeWidget({ marketId, onSuccess }: TradeWidgetProps) {
 
       {/* CTA */}
       {!connected ? (
-        <WalletMultiButton className="!w-full !justify-center" />
+        <ClientOnly>
+          <WalletMultiButton className="!w-full !justify-center" />
+        </ClientOnly>
       ) : (
         <button
           type="button"
