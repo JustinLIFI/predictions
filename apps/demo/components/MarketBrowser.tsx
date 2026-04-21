@@ -139,13 +139,17 @@ function dateSortKey(title: string): number {
 }
 
 function parseTitleDateKey(title: string): number {
-  // Try JS Date parsing with a clean "Month [Day,] Year" extract
-  const m = title.match(
-    /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})?,?\s*(20\d{2})\b/i,
+  const t = title.toLowerCase()
+  // Q-notation: Q1 2025, Q4 2026
+  const q = t.match(/\bq([1-4])\s+(20\d{2})\b/)
+  if (q) return new Date(parseInt(q[2]), (parseInt(q[1]) - 1) * 3, 1).getTime()
+  // Month + Day (+ optional ordinal suffix) + optional Year — year defaults to current
+  const m = t.match(
+    /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(20\d{2})?\b/,
   )
   if (m) {
-    const dateStr = m[2] ? `${m[1]} ${m[2]}, ${m[3]}` : `${m[1]} 1, ${m[3]}`
-    const d = new Date(dateStr)
+    const year = m[3] ? parseInt(m[3]) : new Date().getFullYear()
+    const d = new Date(year, MONTH_INDEX[m[1]] ?? 0, parseInt(m[2]))
     if (!isNaN(d.getTime())) return d.getTime()
   }
   return dateSortKey(title) * 86_400_000
@@ -161,10 +165,11 @@ function priceSortKey(title: string): number {
 
 function sortMarketsForType(markets: Market[], type: EventType): Market[] {
   if (markets.length <= 1) return markets
+  const now = Date.now()
   return [...markets].sort((a, b) => {
-    // Open markets always before closed
-    const aOpen = a.status === 'open' ? 0 : 1
-    const bOpen = b.status === 'open' ? 0 : 1
+    // Effectively open = status open AND closeTime hasn't passed
+    const aOpen = a.status === 'open' && a.closeTime * 1000 > now ? 0 : 1
+    const bOpen = b.status === 'open' && b.closeTime * 1000 > now ? 0 : 1
     if (aOpen !== bOpen) return aOpen - bOpen
     if (type === 'multi-candidate') return b.pricing.buyYesPriceUsd - a.pricing.buyYesPriceUsd
     if (type === 'date-series') return parseTitleDateKey(a.title) - parseTitleDateKey(b.title)
@@ -526,7 +531,8 @@ function MultiMarketEventCard({
   const hasSelected = markets.some((m) => m.marketId === selectedMarketId)
   const [open, setOpen] = useState(hasSelected)
 
-  const openMarkets = markets.filter((m) => m.status === 'open')
+  const now = Date.now()
+  const openMarkets = markets.filter((m) => m.status === 'open' && m.closeTime * 1000 > now)
   const eventVolMicro = getEventVolume(event)
   const earliestClose = getEarliestCloseTime(event)
 
