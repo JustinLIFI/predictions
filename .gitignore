@@ -1,0 +1,29 @@
+# dependencies
+node_modules/
+
+# build outputs
+dist/
+.next/
+out/
+
+# env files
+.env
+.env.local
+.env.*.local
+
+# pnpm
+.pnpm-store/
+
+# OS
+.DS_Store
+
+# editor
+.vscode/
+.idea/
+
+# debug
+*.log
+npm-debug.log*
+
+# claude
+.claude/

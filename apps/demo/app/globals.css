@@ -1,0 +1,348 @@
+@import "tailwindcss";
+
+/* ---- GT America (local) ---- */
+@font-face {
+  font-family: 'GT America';
+  font-weight: 400;
+  font-style: normal;
+  src: url('/fonts/GT-America-Regular.otf') format('opentype');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'GT America';
+  font-weight: 400;
+  font-style: italic;
+  src: url('/fonts/GT-America-Regular-Italic.otf') format('opentype');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'GT America';
+  font-weight: 500;
+  font-style: normal;
+  src: url('/fonts/GT-America-Medium.otf') format('opentype');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'GT America';
+  font-weight: 500;
+  font-style: italic;
+  src: url('/fonts/GT-America-Medium-Italic.otf') format('opentype');
+  font-display: swap;
+}
+
+/* ---- LI.FI design tokens ---- */
+:root {
+  --lifi-pink:     #F7C2FF;
+  --lifi-blue:     #5C67FF;
+  --lifi-gradient: linear-gradient(135deg, #F7C2FF 0%, #5C67FF 100%);
+
+  --ink-0:   #000000;
+  --ink-50:  #0A0A0B;
+  --ink-100: #121214;
+  --ink-200: #1A1A1D;
+  --ink-300: #26262A;
+  --ink-400: #3A3A40;
+  --ink-500: #5A5A63;
+  --ink-600: #8A8A94;
+  --ink-700: #B4B4BD;
+  --ink-900: #F4F4F5;
+
+  --success: #34D399;
+  --danger:  #F87171;
+  --warning: #FBBF24;
+
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@theme inline {
+  --font-sans: 'GT America', 'Helvetica Neue', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ---- Base ---- */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: 'GT America', 'Helvetica Neue', system-ui, sans-serif;
+  background: var(--ink-0);
+  color: var(--ink-900);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---- Component classes ---- */
+@layer components {
+
+  /* Section label — uppercase tracking-widest pink pill */
+  .section-label {
+    display: inline-flex;
+    align-items: center;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--lifi-pink);
+    background: rgba(247, 194, 255, 0.08);
+    border: 1px solid rgba(247, 194, 255, 0.2);
+    border-radius: 999px;
+    padding: 3px 10px;
+    flex-shrink: 0;
+  }
+
+  /* Eyebrow: //section_name — for inline/empty-state use */
+  .eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--ink-600);
+    letter-spacing: 0.02em;
+  }
+  .eyebrow::before {
+    content: "//";
+    color: var(--lifi-pink);
+    margin-right: 2px;
+  }
+
+  /* ---- Surfaces ---- */
+
+  /* Card: default interactive surface */
+  .lifi-card {
+    background: var(--ink-200);
+    border: 1px solid var(--ink-300);
+    border-radius: 16px;
+    transition: border-color 200ms var(--ease-out);
+  }
+  .lifi-card-btn:hover {
+    border-color: var(--ink-400);
+    box-shadow: 0 0 32px rgba(247, 194, 255, 0.08);
+  }
+
+  /* Panel: contained section surface — no drop shadow, border separates */
+  .lifi-panel {
+    background: var(--ink-50);
+    border: 1px solid var(--ink-300);
+    border-radius: 24px;
+  }
+
+  /* Input field wrapper */
+  .lifi-field {
+    background: var(--ink-100);
+    border: 1px solid var(--ink-300);
+    border-radius: 12px;
+    transition: border-color 150ms;
+  }
+  .lifi-field:focus-within {
+    border-color: var(--lifi-blue);
+  }
+
+  /* Summary row — RouteSummary pattern */
+  .lifi-summary {
+    background: var(--ink-100);
+    border: 1px solid var(--ink-300);
+    border-radius: 12px;
+  }
+
+  /* Mono field label */
+  .field-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--ink-600);
+    margin-bottom: 3px;
+  }
+  .field-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-900);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- Buttons ---- */
+
+  /* Gradient accent CTA */
+  .btn-accent {
+    background: var(--lifi-gradient);
+    color: var(--ink-50);
+    border: none;
+    border-radius: 12px;
+    font-family: 'GT America', 'Helvetica Neue', system-ui, sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 0 40px rgba(92, 103, 255, 0.25);
+    transition: opacity 150ms var(--ease-out);
+  }
+  .btn-accent:hover:not(:disabled) { opacity: 0.88; }
+  .btn-accent:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; }
+
+  /* Secondary outlined button */
+  .btn-secondary {
+    background: transparent;
+    color: var(--ink-900);
+    border: 1px solid var(--ink-400);
+    border-radius: 8px;
+    font-family: 'GT America', 'Helvetica Neue', system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 150ms, background 150ms;
+  }
+  .btn-secondary:hover {
+    border-color: var(--lifi-pink);
+    background: rgba(247, 194, 255, 0.06);
+  }
+
+  /* ---- Category pills ---- */
+  .cat-pill {
+    background: transparent;
+    color: var(--ink-600);
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-family: 'GT America', 'Helvetica Neue', system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: color 150ms, background 150ms, border-color 150ms;
+  }
+  .cat-pill:hover {
+    color: var(--ink-900);
+    background: rgba(255, 255, 255, 0.04);
+  }
+  /* Active: gradient fill — the single accent per category row */
+  .cat-pill.active {
+    background: var(--lifi-gradient);
+    color: #0A0A0B;
+    border-color: transparent;
+    font-weight: 600;
+  }
+  .cat-pill.active:hover {
+    opacity: 0.9;
+  }
+
+  /* ---- Outcome badges ---- */
+  .badge-yes {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(52, 211, 153, 0.10);
+    color: var(--success);
+    border: 1px solid rgba(52, 211, 153, 0.25);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    letter-spacing: 0.01em;
+    flex-shrink: 0;
+  }
+  .badge-no {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(248, 113, 113, 0.10);
+    color: var(--danger);
+    border: 1px solid rgba(248, 113, 113, 0.25);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    letter-spacing: 0.01em;
+    flex-shrink: 0;
+  }
+  .badge-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ---- YES / NO side toggle ---- */
+  .side-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    overflow: hidden;
+    border-radius: 10px;
+    background: var(--ink-100);
+    border: 1px solid var(--ink-300);
+    padding: 3px;
+    gap: 3px;
+  }
+  .side-btn {
+    padding: 9px 12px;
+    font-family: 'GT America', 'Helvetica Neue', system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 150ms, color 150ms;
+    letter-spacing: -0.01em;
+  }
+  .side-btn-inactive {
+    background: transparent;
+    color: var(--ink-500);
+  }
+  .side-btn-inactive:hover {
+    color: var(--ink-700);
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .side-btn-yes {
+    background: rgba(52, 211, 153, 0.15);
+    color: var(--success);
+  }
+  .side-btn-no {
+    background: rgba(248, 113, 113, 0.15);
+    color: var(--danger);
+  }
+
+  /* ---- Market sub-row (multi-market event) ---- */
+  .market-sub-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: var(--ink-300);
+    cursor: pointer;
+    text-align: left;
+    transition: background 150ms;
+  }
+  .market-sub-row:hover {
+    background: var(--ink-400);
+  }
+
+  /* ---- Scrollbar reset ---- */
+  .scroll-none { scrollbar-width: none; }
+  .scroll-none::-webkit-scrollbar { display: none; }
+}
+
+/* ---- Wallet adapter override ---- */
+.wallet-adapter-button,
+.wallet-adapter-button-trigger {
+  background: transparent !important;
+  border: 1px solid #3A3A40 !important;
+  border-radius: 8px !important;
+  color: #F4F4F5 !important;
+  font-family: 'GT America', 'Helvetica Neue', system-ui, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  height: 36px !important;
+  padding: 0 14px !important;
+  line-height: 36px !important;
+  box-shadow: none !important;
+  transition: border-color 150ms, background 150ms !important;
+}
+.wallet-adapter-button:not([disabled]):hover,
+.wallet-adapter-button-trigger:not([disabled]):hover {
+  background: rgba(247, 194, 255, 0.06) !important;
+  border-color: rgba(247, 194, 255, 0.5) !important;
+}
+.wallet-adapter-button .wallet-adapter-button-start-icon,
+.wallet-adapter-button-trigger .wallet-adapter-button-start-icon {
+  width: 18px !important;
+  height: 18px !important;
+}
