@@ -102,17 +102,10 @@ function Chevron({ open }: { open: boolean }) {
   )
 }
 
-// Gradient border using paint-over technique: solid bg over gradient bg,
-// clipped to padding-box so only the border area shows the gradient.
+// Gradient border on single-market selected card (full border, paint-over technique)
 const GRADIENT_BORDER_CARD: React.CSSProperties = {
   background:
     'linear-gradient(#1A1A1D, #1A1A1D) padding-box, linear-gradient(135deg, #F7C2FF 0%, #5C67FF 100%) border-box',
-  border: '1px solid transparent',
-}
-
-const GRADIENT_BORDER_ROW: React.CSSProperties = {
-  background:
-    'linear-gradient(#26262A, #26262A) padding-box, linear-gradient(135deg, #F7C2FF 0%, #5C67FF 100%) border-box',
   border: '1px solid transparent',
 }
 
@@ -128,9 +121,8 @@ function MarketSubRow({
   return (
     <button
       type="button"
-      className="market-sub-row"
+      className={`market-sub-row${selected ? ' market-sub-row-selected' : ''}`}
       onClick={() => onSelect(market.marketId)}
-      style={selected ? GRADIENT_BORDER_ROW : undefined}
     >
       <span
         style={{
@@ -280,81 +272,104 @@ function MultiMarketEventCard({
   const totalVolMicro = markets.reduce((sum, m) => sum + m.pricing.volume, 0)
 
   return (
-    <div className="lifi-card" style={{ padding: 0, overflow: 'hidden' }}>
-      {/* Collapse toggle header */}
+    <div className="lifi-card" style={{ padding: 0 }}>
+      {/* Single-row header — always visible */}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         style={{
           width: '100%',
-          padding: 14,
+          padding: '11px 14px',
           background: 'transparent',
           border: 'none',
           cursor: 'pointer',
-          textAlign: 'left',
           display: 'flex',
-          flexDirection: 'column',
-          gap: 5,
+          alignItems: 'center',
+          gap: 10,
+          textAlign: 'left',
         }}
       >
-        <div
+        {/* Title — truncates to one line */}
+        <p
           style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            gap: 8,
+            flex: 1,
+            minWidth: 0,
+            fontSize: 13,
+            fontWeight: 500,
+            color: 'var(--ink-900)',
+            lineHeight: 1.45,
+            letterSpacing: '-0.01em',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            margin: 0,
           }}
         >
-          <p
-            className="line-clamp-2"
-            style={{
-              fontSize: 13,
-              fontWeight: 500,
-              color: 'var(--ink-900)',
-              lineHeight: 1.45,
-              letterSpacing: '-0.01em',
-              flex: 1,
-            }}
-          >
-            {title}
-          </p>
-          <Chevron open={open} />
-        </div>
+          {title}
+        </p>
 
+        {/* Summary pills — visible only when collapsed */}
         {!open && (
-          <p
-            style={{
-              fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-              fontSize: 10,
-              color: 'var(--ink-600)',
-              letterSpacing: '0.02em',
-            }}
+          <div
+            className="flex items-center gap-1.5"
+            style={{ flexShrink: 0 }}
           >
-            {markets.length} markets · best YES {formatProbability(bestYesMicro)} · vol{' '}
-            {fmtVol(totalVolMicro)}
-          </p>
+            <span
+              style={{
+                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                fontSize: 10,
+                color: 'var(--ink-600)',
+                background: 'var(--ink-300)',
+                borderRadius: 4,
+                padding: '2px 5px',
+              }}
+            >
+              {markets.length}
+            </span>
+            <span
+              className="badge-yes"
+              style={{ fontSize: 10, padding: '1px 6px' }}
+            >
+              {formatProbability(bestYesMicro)}
+            </span>
+            <span
+              style={{
+                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                fontSize: 10,
+                color: 'var(--ink-600)',
+              }}
+            >
+              {fmtVol(totalVolMicro)}
+            </span>
+          </div>
         )}
+
+        <Chevron open={open} />
       </button>
 
-      {/* Sub-rows */}
+      {/* Expanded sub-rows — card grows naturally, capped at 300px with internal scroll */}
       {open && (
-        <div
-          style={{
-            borderTop: '1px solid var(--ink-300)',
-            padding: '8px 12px 12px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 4,
-          }}
-        >
-          {markets.map((market) => (
-            <MarketSubRow
-              key={market.marketId}
-              market={market}
-              onSelect={onSelect}
-              selected={selectedMarketId === market.marketId}
-            />
-          ))}
+        <div style={{ borderTop: '1px solid var(--ink-300)' }}>
+          <div
+            className="scroll-none"
+            style={{
+              maxHeight: 300,
+              overflowY: 'auto',
+              padding: '8px 12px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+            }}
+          >
+            {markets.map((market) => (
+              <MarketSubRow
+                key={market.marketId}
+                market={market}
+                onSelect={onSelect}
+                selected={selectedMarketId === market.marketId}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>

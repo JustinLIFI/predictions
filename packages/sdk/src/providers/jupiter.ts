@@ -116,15 +116,8 @@ export async function getMarket(
 	config: ResolvedConfig,
 	marketId: string,
 ): Promise<GetMarketResult> {
-	const raw = await request<Record<string, unknown>>(config, `/markets/${encodeURIComponent(marketId)}`)
-	console.log('[prediction-sdk] getMarket raw response keys:', Object.keys(raw), JSON.stringify(raw).slice(0, 300))
-	const market = (raw['data'] ?? raw['market']) as Market | undefined
-	if (!market) {
-		throw new PredictionApiError(
-			0,
-			`Unexpected market response shape for ${marketId} — keys: ${Object.keys(raw).join(', ')}`,
-		)
-	}
+	const market = await request<Market>(config, `/markets/${encodeURIComponent(marketId)}`)
+	console.log('[prediction-sdk] getMarket:', marketId, Object.keys(market))
 	return { market }
 }
 

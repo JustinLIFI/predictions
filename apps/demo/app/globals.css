@@ -298,13 +298,14 @@ body {
 
   /* ---- Market sub-row (multi-market event) ---- */
   .market-sub-row {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
     width: 100%;
     padding: 7px 10px;
-    border: 1px solid transparent;
+    border: none;
     border-radius: 8px;
     background: var(--ink-300);
     cursor: pointer;
@@ -313,6 +314,17 @@ body {
   }
   .market-sub-row:hover {
     background: var(--ink-400);
+  }
+  /* Gradient left accent on selected sub-row */
+  .market-sub-row-selected::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 3px;
+    bottom: 3px;
+    width: 2px;
+    border-radius: 0 1px 1px 0;
+    background: linear-gradient(180deg, #F7C2FF 0%, #5C67FF 100%);
   }
 
   /* ---- Scrollbar reset ---- */
