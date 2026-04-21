@@ -19,6 +19,7 @@ export type {
 	GetMarketResult,
 	GetOrderbookResult,
 	GetPositionsResult,
+	HistoryEvent,
 	Market,
 	MarketPricing,
 	Order,

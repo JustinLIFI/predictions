@@ -10,11 +10,13 @@ import type {
 	GetEventsParams,
 	GetEventsResult,
 	GetHistoryResult,
+	HistoryEvent,
 	GetMarketResult,
 	GetOrderbookResult,
 	GetPositionsResult,
 	Market,
 	OrderStatus,
+	Position,
 	TradingStatus,
 } from '../types.js'
 
@@ -180,17 +182,22 @@ export async function getPositions(
 	config: ResolvedConfig,
 	ownerPubkey: string,
 ): Promise<GetPositionsResult> {
-	return request<GetPositionsResult>(
+	const raw = await request<{ data: Position[] }>(
 		config,
-		`/positions/${encodeURIComponent(ownerPubkey)}`,
+		`/positions?ownerPubkey=${encodeURIComponent(ownerPubkey)}`,
 	)
+	return { positions: raw.data }
 }
 
 export async function getHistory(
 	config: ResolvedConfig,
 	ownerPubkey: string,
 ): Promise<GetHistoryResult> {
-	return request<GetHistoryResult>(config, `/history/${encodeURIComponent(ownerPubkey)}`)
+	const raw = await request<{ data: HistoryEvent[] }>(
+		config,
+		`/history?ownerPubkey=${encodeURIComponent(ownerPubkey)}`,
+	)
+	return { events: raw.data }
 }
 
 export async function getClaimable(
