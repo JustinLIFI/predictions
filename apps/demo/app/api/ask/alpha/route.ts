@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
   const server = createPredictionClient({
     integrator: 'lifi-prediction-demo',
     apiUrl: 'https://api.jup.ag/prediction/v1',
+    apiKey: process.env.JUPITER_API_KEY,
   })
 
   let candidatesBlock: string
