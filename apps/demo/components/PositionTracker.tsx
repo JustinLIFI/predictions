@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { VersionedTransaction } from '@solana/web3.js'
 import {
@@ -11,8 +11,10 @@ import {
   getMarket,
   getPositions,
 } from '@lifi/prediction-sdk'
-import type { Position } from '@lifi/prediction-sdk'
+import type { GetMarketResult, Market, Position } from '@lifi/prediction-sdk'
 import { predictionClient } from '../lib/client'
+import { AskAIButton } from './AskAIButton'
+import { PortfolioAIModal } from './PortfolioAIModal'
 
 function StatField({ label, value }: { label: string; value: string }) {
   return (
@@ -136,7 +138,12 @@ function PositionRow({
 export function PositionTracker() {
   const { publicKey, signTransaction, connected } = useWallet()
   const { connection } = useConnection()
+  const queryClient = useQueryClient()
   const [claimingPubkey, setClaimingPubkey] = useState<string | null>(null)
+  const [askContext, setAskContext] = useState<{ positions: Position[]; markets: Market[] } | null>(
+    null,
+  )
+  const [preparingAsk, setPreparingAsk] = useState(false)
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['positions', publicKey?.toString()],
@@ -145,6 +152,30 @@ export function PositionTracker() {
     staleTime: 30_000,
     refetchInterval: 30_000,
   })
+
+  async function handleAsk(positions: Position[]) {
+    if (preparingAsk) return
+    setPreparingAsk(true)
+    try {
+      const results = await Promise.all(
+        positions.map((p) =>
+          queryClient
+            .ensureQueryData<GetMarketResult>({
+              queryKey: ['market', p.marketId],
+              queryFn: () => getMarket(predictionClient, p.marketId),
+              staleTime: 30_000,
+            })
+            .catch(() => null),
+        ),
+      )
+      const markets = results
+        .filter((r): r is GetMarketResult => r !== null)
+        .map((r) => r.market)
+      setAskContext({ positions, markets })
+    } finally {
+      setPreparingAsk(false)
+    }
+  }
 
   async function handleClaim(positionPubkey: string) {
     if (!publicKey || !signTransaction) return
@@ -220,6 +251,17 @@ export function PositionTracker() {
 
   return (
     <div className="lifi-panel" style={{ padding: 14 }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ marginBottom: 10, padding: '0 2px' }}
+      >
+        <span className="eyebrow">your_positions</span>
+        <AskAIButton
+          onClick={() => handleAsk(positions)}
+          ariaLabel="Ask AI about your portfolio"
+          disabled={preparingAsk}
+        />
+      </div>
       <div className="flex flex-col gap-2">
         {positions.map((position) => (
           <PositionRow
@@ -230,6 +272,13 @@ export function PositionTracker() {
           />
         ))}
       </div>
+      {askContext && (
+        <PortfolioAIModal
+          positions={askContext.positions}
+          markets={askContext.markets}
+          onClose={() => setAskContext(null)}
+        />
+      )}
     </div>
   )
 }

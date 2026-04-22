@@ -10,6 +10,7 @@ import {
 } from '@lifi/prediction-sdk'
 import type { Event, EventCategory, Market } from '@lifi/prediction-sdk'
 import { predictionClient } from '../lib/client'
+import { AskAIButton } from './AskAIButton'
 import { AskAIModal } from './AskAIModal'
 
 const CATEGORIES: { label: string; value: EventCategory | 'all' }[] = [
@@ -269,62 +270,6 @@ function Chevron({ open }: { open: boolean }) {
   )
 }
 
-function AskAIButton({
-  onClick,
-  compact = false,
-}: {
-  onClick: () => void
-  compact?: boolean
-}) {
-  return (
-    <span
-      role="button"
-      tabIndex={0}
-      aria-label="Ask AI about this market"
-      onClick={(e) => {
-        e.stopPropagation()
-        onClick()
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          e.stopPropagation()
-          onClick()
-        }
-      }}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 4,
-        padding: compact ? '1px 6px' : '3px 8px',
-        fontSize: compact ? 10 : 11,
-        fontWeight: 600,
-        color: 'var(--lifi-pink)',
-        background: 'rgba(247, 194, 255, 0.08)',
-        border: '1px solid rgba(247, 194, 255, 0.25)',
-        borderRadius: 999,
-        cursor: 'pointer',
-        letterSpacing: '0.02em',
-        lineHeight: 1.2,
-        transition: 'background 150ms, border-color 150ms',
-        flexShrink: 0,
-        fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'rgba(247, 194, 255, 0.15)'
-        e.currentTarget.style.borderColor = 'rgba(247, 194, 255, 0.45)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'rgba(247, 194, 255, 0.08)'
-        e.currentTarget.style.borderColor = 'rgba(247, 194, 255, 0.25)'
-      }}
-    >
-      <span aria-hidden="true">✦</span>
-      ASK_AI
-    </span>
-  )
-}
-
 const GRADIENT_BORDER_CARD: React.CSSProperties = {
   background:
     'linear-gradient(#1A1A1D, #1A1A1D) padding-box, linear-gradient(135deg, #F7C2FF 0%, #5C67FF 100%) border-box',
@@ -366,7 +311,11 @@ function MarketSubRow({
         {market.title}
       </span>
       <div className="flex items-center gap-1.5" style={{ flexShrink: 0 }}>
-        <AskAIButton compact onClick={() => onAskAI(market)} />
+        <AskAIButton
+            compact
+            ariaLabel="Ask AI about this market"
+            onClick={() => onAskAI(market)}
+          />
         {isClosed ? (
           <span
             style={{
@@ -450,7 +399,11 @@ function MultiCandidateSubRow({
           {market.title}
         </span>
         <div className="flex items-center gap-1.5" style={{ flexShrink: 0 }}>
-          <AskAIButton compact onClick={() => onAskAI(market)} />
+          <AskAIButton
+            compact
+            ariaLabel="Ask AI about this market"
+            onClick={() => onAskAI(market)}
+          />
           {isClosed ? (
             <span
               style={{
@@ -552,7 +505,7 @@ function SingleMarketCard({
         >
           {title}
         </p>
-        <AskAIButton onClick={() => onAskAI(market)} />
+        <AskAIButton ariaLabel="Ask AI about this market" onClick={() => onAskAI(market)} />
       </div>
 
       <div style={{ marginBottom: 10 }}>
