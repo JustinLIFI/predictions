@@ -37,15 +37,16 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 
 interface TradeWidgetProps {
   marketId: string
+  initialSide?: 'yes' | 'no'
   onSuccess?: (orderPubkey: string) => void
 }
 
-export function TradeWidget({ marketId, onSuccess }: TradeWidgetProps) {
+export function TradeWidget({ marketId, initialSide, onSuccess }: TradeWidgetProps) {
   const { publicKey, signTransaction, connected } = useWallet()
   const { connection } = useConnection()
   const queryClient = useQueryClient()
 
-  const [side, setSide] = useState<'yes' | 'no'>('yes')
+  const [side, setSide] = useState<'yes' | 'no'>(initialSide ?? 'yes')
   const [amountInput, setAmountInput] = useState('')
   const [tradeState, setTradeState] = useState<TradeState>('idle')
   const [errorMessage, setErrorMessage] = useState('')
