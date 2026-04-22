@@ -13,7 +13,6 @@ const FORWARD_REQUEST_HEADERS = new Set([
 const FORWARD_RESPONSE_HEADERS = new Set([
   'content-type',
   'cache-control',
-  'content-encoding',
   'content-language',
 ])
 
@@ -37,6 +36,13 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path: string[] }
   }
 
   const upstream = await fetch(target, init)
+
+  if (!upstream.ok) {
+    console.warn(
+      `[prediction-proxy] ${req.method} ${target} → ${upstream.status}` +
+        ` (apiKey: ${apiKey ? 'yes' : 'no'})`,
+    )
+  }
 
   const responseHeaders = new Headers()
   upstream.headers.forEach((value, key) => {
