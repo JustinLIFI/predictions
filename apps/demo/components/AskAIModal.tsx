@@ -8,10 +8,25 @@ interface AskAIModalProps {
   onClose: () => void
 }
 
+interface Citation {
+  index: number
+  url: string
+  title: string
+}
+
 interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
+  searching?: boolean
+  citations?: Citation[]
 }
+
+type StreamEvent =
+  | { type: 'text'; delta: string }
+  | { type: 'search_start' }
+  | { type: 'search_done'; queries?: string[] }
+  | { type: 'citation'; index: number; url: string; title: string }
+  | { type: 'error'; message: string }
 
 const SUGGESTIONS = [
   'Summarise this market in plain English.',
@@ -19,6 +34,14 @@ const SUGGESTIONS = [
   'What would make YES resolve?',
   'What key dates matter for this market?',
 ]
+
+function hostFromUrl(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return url
+  }
+}
 
 export function AskAIModal({ market, onClose }: AskAIModalProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -46,6 +69,37 @@ export function AskAIModal({ market, onClose }: AskAIModalProps) {
     const el = scrollRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [messages])
+
+  function applyStreamEvent(event: StreamEvent) {
+    if (event.type === 'error') {
+      setError(event.message)
+      return
+    }
+    setMessages((prev) => {
+      const copy = prev.slice()
+      const last = copy[copy.length - 1]
+      if (!last || last.role !== 'assistant') return prev
+      if (event.type === 'text') {
+        copy[copy.length - 1] = {
+          ...last,
+          content: last.content + event.delta,
+          searching: false,
+        }
+      } else if (event.type === 'search_start') {
+        copy[copy.length - 1] = { ...last, searching: true }
+      } else if (event.type === 'search_done') {
+        copy[copy.length - 1] = { ...last, searching: false }
+      } else if (event.type === 'citation') {
+        const existing = last.citations ?? []
+        if (existing.some((c) => c.index === event.index)) return prev
+        copy[copy.length - 1] = {
+          ...last,
+          citations: [...existing, { index: event.index, url: event.url, title: event.title }],
+        }
+      }
+      return copy
+    })
+  }
 
   async function sendMessage(prompt: string) {
     const trimmed = prompt.trim()
@@ -89,14 +143,27 @@ export function AskAIModal({ market, onClose }: AskAIModalProps) {
         const { value, done } = await reader.read()
         if (done) break
         buffer += decoder.decode(value, { stream: true })
-        setMessages((prev) => {
-          const copy = prev.slice()
-          const last = copy[copy.length - 1]
-          if (last && last.role === 'assistant') {
-            copy[copy.length - 1] = { ...last, content: buffer }
+        let newlineIndex = buffer.indexOf('\n')
+        while (newlineIndex !== -1) {
+          const line = buffer.slice(0, newlineIndex).trim()
+          buffer = buffer.slice(newlineIndex + 1)
+          if (line) {
+            try {
+              applyStreamEvent(JSON.parse(line) as StreamEvent)
+            } catch {
+              // Ignore malformed lines — they're almost certainly a stream artifact.
+            }
           }
-          return copy
-        })
+          newlineIndex = buffer.indexOf('\n')
+        }
+      }
+      const tail = buffer.trim()
+      if (tail) {
+        try {
+          applyStreamEvent(JSON.parse(tail) as StreamEvent)
+        } catch {
+          // Ignore.
+        }
       }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return
@@ -113,6 +180,13 @@ export function AskAIModal({ market, onClose }: AskAIModalProps) {
     } finally {
       setIsStreaming(false)
       abortRef.current = null
+      setMessages((prev) => {
+        const last = prev[prev.length - 1]
+        if (!last || last.role !== 'assistant' || !last.searching) return prev
+        const copy = prev.slice()
+        copy[copy.length - 1] = { ...last, searching: false }
+        return copy
+      })
     }
   }
 
@@ -309,6 +383,8 @@ export function AskAIModal({ market, onClose }: AskAIModalProps) {
 
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user'
+  const citations = message.citations ?? []
+  const hasCitations = !isUser && citations.length > 0
   return (
     <div
       style={{
@@ -330,7 +406,60 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           border: isUser ? 'none' : '1px solid var(--ink-300)',
         }}
       >
-        {message.content || <span style={{ color: 'var(--ink-600)' }}>…</span>}
+        {!isUser && message.searching && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              color: 'var(--accent, #ff4fa3)',
+              fontSize: 12,
+              marginBottom: message.content ? 6 : 0,
+            }}
+          >
+            <span style={{ animation: 'pulse 1.4s ease-in-out infinite' }}>✦</span>
+            <span>Searching the web…</span>
+          </div>
+        )}
+        {message.content || (!message.searching && <span style={{ color: 'var(--ink-600)' }}>…</span>)}
+        {hasCitations && (
+          <div
+            style={{
+              marginTop: 8,
+              paddingTop: 8,
+              borderTop: '1px dashed var(--ink-300)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 3,
+              whiteSpace: 'normal',
+            }}
+          >
+            <span className="eyebrow" style={{ fontSize: 10 }}>
+              sources
+            </span>
+            {citations
+              .slice()
+              .sort((a, b) => a.index - b.index)
+              .map((c) => (
+                <a
+                  key={c.index}
+                  href={c.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--ink-600)',
+                    textDecoration: 'none',
+                    wordBreak: 'break-all',
+                  }}
+                  title={c.title}
+                >
+                  <span style={{ color: 'var(--accent, #ff4fa3)' }}>[{c.index}]</span>{' '}
+                  {hostFromUrl(c.url)}
+                </a>
+              ))}
+          </div>
+        )}
       </div>
     </div>
   )
