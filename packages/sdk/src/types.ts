@@ -147,6 +147,7 @@ export interface CreateOrderParams {
 export interface CreateSellOrderParams {
 	ownerPubkey: string
 	positionPubkey: string
+	isYes: boolean
 	contracts: number
 	depositMint: string
 }
