@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import { ClientOnly } from '../components/ClientOnly'
+import { HistoryPanel } from '../components/HistoryPanel'
 import { MarketBrowser } from '../components/MarketBrowser'
 import { PositionTracker } from '../components/PositionTracker'
 import { TradeWidget } from '../components/TradeWidget'
@@ -80,6 +81,11 @@ export default function Home() {
             <div className="flex flex-col gap-3">
               <SectionLabel>Positions</SectionLabel>
               <PositionTracker />
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <SectionLabel>History</SectionLabel>
+              <HistoryPanel />
             </div>
           </aside>
         </div>
