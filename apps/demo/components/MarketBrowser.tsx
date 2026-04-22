@@ -10,6 +10,7 @@ import {
 } from '@lifi/prediction-sdk'
 import type { Event, EventCategory, Market } from '@lifi/prediction-sdk'
 import { predictionClient } from '../lib/client'
+import { AskAIModal } from './AskAIModal'
 
 const CATEGORIES: { label: string; value: EventCategory | 'all' }[] = [
   { label: 'All', value: 'all' },
@@ -268,6 +269,62 @@ function Chevron({ open }: { open: boolean }) {
   )
 }
 
+function AskAIButton({
+  onClick,
+  compact = false,
+}: {
+  onClick: () => void
+  compact?: boolean
+}) {
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      aria-label="Ask AI about this market"
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick()
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          e.stopPropagation()
+          onClick()
+        }
+      }}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: compact ? '1px 6px' : '3px 8px',
+        fontSize: compact ? 10 : 11,
+        fontWeight: 600,
+        color: 'var(--lifi-pink)',
+        background: 'rgba(247, 194, 255, 0.08)',
+        border: '1px solid rgba(247, 194, 255, 0.25)',
+        borderRadius: 999,
+        cursor: 'pointer',
+        letterSpacing: '0.02em',
+        lineHeight: 1.2,
+        transition: 'background 150ms, border-color 150ms',
+        flexShrink: 0,
+        fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = 'rgba(247, 194, 255, 0.15)'
+        e.currentTarget.style.borderColor = 'rgba(247, 194, 255, 0.45)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = 'rgba(247, 194, 255, 0.08)'
+        e.currentTarget.style.borderColor = 'rgba(247, 194, 255, 0.25)'
+      }}
+    >
+      <span aria-hidden="true">✦</span>
+      ASK_AI
+    </span>
+  )
+}
+
 const GRADIENT_BORDER_CARD: React.CSSProperties = {
   background:
     'linear-gradient(#1A1A1D, #1A1A1D) padding-box, linear-gradient(135deg, #F7C2FF 0%, #5C67FF 100%) border-box',
@@ -279,10 +336,12 @@ function MarketSubRow({
   market,
   onSelect,
   selected,
+  onAskAI,
 }: {
   market: Market
   onSelect: (id: string) => void
   selected: boolean
+  onAskAI: (market: Market) => void
 }) {
   const isClosed = market.status !== 'open'
   return (
@@ -307,6 +366,7 @@ function MarketSubRow({
         {market.title}
       </span>
       <div className="flex items-center gap-1.5" style={{ flexShrink: 0 }}>
+        <AskAIButton compact onClick={() => onAskAI(market)} />
         {isClosed ? (
           <span
             style={{
@@ -345,10 +405,12 @@ function MultiCandidateSubRow({
   market,
   onSelect,
   selected,
+  onAskAI,
 }: {
   market: Market
   onSelect: (id: string) => void
   selected: boolean
+  onAskAI: (market: Market) => void
 }) {
   const isClosed = market.status !== 'open'
   const winPct = market.pricing.buyYesPriceUsd / 10_000
@@ -387,24 +449,27 @@ function MultiCandidateSubRow({
         >
           {market.title}
         </span>
-        {isClosed ? (
-          <span
-            style={{
-              ...MONO,
-              fontSize: 10,
-              color: 'var(--ink-600)',
-              background: 'var(--ink-400)',
-              borderRadius: 4,
-              padding: '2px 7px',
-            }}
-          >
-            Closed
-          </span>
-        ) : (
-          <span style={{ ...MONO, fontSize: 11, color: 'var(--success)', fontWeight: 600, flexShrink: 0 }}>
-            {formatProbability(market.pricing.buyYesPriceUsd)}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5" style={{ flexShrink: 0 }}>
+          <AskAIButton compact onClick={() => onAskAI(market)} />
+          {isClosed ? (
+            <span
+              style={{
+                ...MONO,
+                fontSize: 10,
+                color: 'var(--ink-600)',
+                background: 'var(--ink-400)',
+                borderRadius: 4,
+                padding: '2px 7px',
+              }}
+            >
+              Closed
+            </span>
+          ) : (
+            <span style={{ ...MONO, fontSize: 11, color: 'var(--success)', fontWeight: 600 }}>
+              {formatProbability(market.pricing.buyYesPriceUsd)}
+            </span>
+          )}
+        </div>
       </div>
       {!isClosed && (
         <div
@@ -452,11 +517,13 @@ function SingleMarketCard({
   market,
   onSelect,
   selected,
+  onAskAI,
 }: {
   event: Event
   market: Market
   onSelect: (id: string) => void
   selected: boolean
+  onAskAI: (market: Market) => void
 }) {
   const title = (event as EventExt).metadata?.title ?? event.title ?? '—'
   return (
@@ -466,19 +533,27 @@ function SingleMarketCard({
       className="lifi-card lifi-card-btn w-full text-left"
       style={{ padding: 16, ...(selected ? GRADIENT_BORDER_CARD : {}) }}
     >
-      <p
-        className="line-clamp-2"
-        style={{
-          fontSize: 13,
-          fontWeight: 500,
-          color: 'var(--ink-900)',
-          lineHeight: 1.45,
-          marginBottom: 10,
-          letterSpacing: '-0.01em',
-        }}
+      <div
+        className="flex items-start gap-2"
+        style={{ marginBottom: 10 }}
       >
-        {title}
-      </p>
+        <p
+          className="line-clamp-2"
+          style={{
+            flex: 1,
+            minWidth: 0,
+            fontSize: 13,
+            fontWeight: 500,
+            color: 'var(--ink-900)',
+            lineHeight: 1.45,
+            letterSpacing: '-0.01em',
+            margin: 0,
+          }}
+        >
+          {title}
+        </p>
+        <AskAIButton onClick={() => onAskAI(market)} />
+      </div>
 
       <div style={{ marginBottom: 10 }}>
         <ProbabilityBar
@@ -519,10 +594,12 @@ function MultiMarketEventCard({
   event,
   onSelect,
   selectedMarketId,
+  onAskAI,
 }: {
   event: Event
   onSelect: (marketId: string) => void
   selectedMarketId?: string | null
+  onAskAI: (market: Market) => void
 }) {
   const title = (event as EventExt).metadata?.title ?? event.title ?? '—'
   const rawMarkets = event.markets ?? []
@@ -699,6 +776,7 @@ function MultiMarketEventCard({
                   market={market}
                   onSelect={onSelect}
                   selected={selectedMarketId === market.marketId}
+                  onAskAI={onAskAI}
                 />
               ) : (
                 <MarketSubRow
@@ -706,6 +784,7 @@ function MultiMarketEventCard({
                   market={market}
                   onSelect={onSelect}
                   selected={selectedMarketId === market.marketId}
+                  onAskAI={onAskAI}
                 />
               ),
             )}
@@ -720,10 +799,12 @@ function EventCard({
   event,
   onSelect,
   selectedMarketId,
+  onAskAI,
 }: {
   event: Event
   onSelect: (marketId: string) => void
   selectedMarketId?: string | null
+  onAskAI: (market: Market) => void
 }) {
   const markets = event.markets ?? []
   if (markets.length === 0) return null
@@ -735,6 +816,7 @@ function EventCard({
         market={markets[0]}
         onSelect={onSelect}
         selected={selectedMarketId === markets[0].marketId}
+        onAskAI={onAskAI}
       />
     )
   }
@@ -744,6 +826,7 @@ function EventCard({
       event={event}
       onSelect={onSelect}
       selectedMarketId={selectedMarketId}
+      onAskAI={onAskAI}
     />
   )
 }
@@ -758,6 +841,7 @@ export function MarketBrowser({ onSelectMarket, selectedMarketId }: MarketBrowse
   const [sortBy, setSortBy] = useState<SortOption>('volume')
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [askingAbout, setAskingAbout] = useState<Market | null>(null)
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearch(search.trim()), 300)
@@ -925,6 +1009,7 @@ export function MarketBrowser({ onSelectMarket, selectedMarketId }: MarketBrowse
                 event={event}
                 onSelect={onSelectMarket}
                 selectedMarketId={selectedMarketId}
+                onAskAI={setAskingAbout}
               />
             ))}
 
@@ -960,6 +1045,9 @@ export function MarketBrowser({ onSelectMarket, selectedMarketId }: MarketBrowse
           </>
         )}
       </div>
+      {askingAbout && (
+        <AskAIModal market={askingAbout} onClose={() => setAskingAbout(null)} />
+      )}
     </div>
   )
 }
