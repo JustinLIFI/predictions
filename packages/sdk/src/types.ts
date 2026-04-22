@@ -193,8 +193,30 @@ export interface GetPositionsResult {
 	positions: Position[]
 }
 
+export interface HistoryEvent {
+	id: number
+	eventType: string
+	signature: string
+	slot: string
+	timestamp: number
+	orderPubkey: string
+	positionPubkey: string
+	marketId: string
+	ownerPubkey: string
+	isBuy: boolean
+	isYes: boolean
+	contracts: string
+	filledContracts: string
+	avgFillPriceUsd: string
+	totalCostUsd: string
+	feeUsd: string
+	realizedPnl: string | null
+	payoutAmountUsd: string
+	eventId: string
+}
+
 export interface GetHistoryResult {
-	positions: Position[]
+	events: HistoryEvent[]
 }
 
 export interface GetClaimableResult {

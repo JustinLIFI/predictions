@@ -198,24 +198,25 @@ body {
     border: 1px solid transparent;
     border-radius: 999px;
     font-family: 'GT America', 'Helvetica Neue', system-ui, sans-serif;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
-    padding: 5px 13px;
+    padding: 5px 14px;
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
-    transition: color 150ms, background 150ms, border-color 150ms;
+    transition: color 150ms, background 150ms, border-color 150ms, box-shadow 150ms;
   }
   .cat-pill:hover {
     color: var(--ink-900);
     background: rgba(255, 255, 255, 0.04);
   }
-  /* Active: gradient fill — the single accent per category row */
+  /* Active: gradient fill + glow */
   .cat-pill.active {
     background: var(--lifi-gradient);
     color: #0A0A0B;
     border-color: transparent;
     font-weight: 600;
+    box-shadow: 0 2px 14px rgba(247, 194, 255, 0.22);
   }
   .cat-pill.active:hover {
     opacity: 0.9;
@@ -313,7 +314,7 @@ body {
     transition: background 150ms;
   }
   .market-sub-row:hover {
-    background: var(--ink-400);
+    background: #2d2d31;
   }
   /* Gradient left accent on selected sub-row */
   .market-sub-row-selected::before {
@@ -325,6 +326,33 @@ body {
     width: 2px;
     border-radius: 0 1px 1px 0;
     background: linear-gradient(180deg, #F7C2FF 0%, #5C67FF 100%);
+  }
+
+  /* ---- Sort pills ---- */
+  .sort-pill {
+    background: transparent;
+    color: var(--ink-700);
+    border: 1px solid var(--ink-300);
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.01em;
+    transition: color 150ms, background 150ms, border-color 150ms;
+  }
+  .sort-pill:hover {
+    color: var(--ink-900);
+    border-color: var(--ink-400);
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .sort-pill.active {
+    color: var(--lifi-pink);
+    border-color: rgba(247, 194, 255, 0.3);
+    background: rgba(247, 194, 255, 0.06);
   }
 
   /* ---- Scrollbar reset ---- */

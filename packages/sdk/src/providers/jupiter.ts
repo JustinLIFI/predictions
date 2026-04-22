@@ -10,11 +10,13 @@ import type {
 	GetEventsParams,
 	GetEventsResult,
 	GetHistoryResult,
+	HistoryEvent,
 	GetMarketResult,
 	GetOrderbookResult,
 	GetPositionsResult,
 	Market,
 	OrderStatus,
+	Position,
 	TradingStatus,
 } from '../types.js'
 
@@ -176,21 +178,60 @@ export async function createSellOrder(
 	})
 }
 
+interface RawPosition {
+	pubkey: string
+	owner: string
+	marketId: string
+	isYes: boolean
+	contracts: string
+	totalCostUsd: string
+	avgPriceUsd: string
+	valueUsd: string
+	markPriceUsd: string
+	pnlUsd: string
+	claimable: boolean
+	claimed: boolean
+	payoutUsd?: string
+}
+
+function mapPosition(raw: RawPosition): Position {
+	return {
+		positionPubkey: raw.pubkey,
+		owner: raw.owner,
+		marketId: raw.marketId,
+		side: raw.isYes ? 'yes' : 'no',
+		contracts: Number(raw.contracts),
+		totalCostUsd: Number(raw.totalCostUsd),
+		avgPriceUsd: Number(raw.avgPriceUsd),
+		valueUsd: Number(raw.valueUsd),
+		markPriceUsd: Number(raw.markPriceUsd),
+		unrealizedPnl: Number(raw.pnlUsd),
+		claimable: raw.claimable,
+		claimed: raw.claimed,
+		payoutUsd: raw.payoutUsd !== undefined ? Number(raw.payoutUsd) : undefined,
+	}
+}
+
 export async function getPositions(
 	config: ResolvedConfig,
 	ownerPubkey: string,
 ): Promise<GetPositionsResult> {
-	return request<GetPositionsResult>(
+	const raw = await request<{ data: RawPosition[] }>(
 		config,
-		`/positions/${encodeURIComponent(ownerPubkey)}`,
+		`/positions?ownerPubkey=${encodeURIComponent(ownerPubkey)}`,
 	)
+	return { positions: raw.data.map(mapPosition) }
 }
 
 export async function getHistory(
 	config: ResolvedConfig,
 	ownerPubkey: string,
 ): Promise<GetHistoryResult> {
-	return request<GetHistoryResult>(config, `/history/${encodeURIComponent(ownerPubkey)}`)
+	const raw = await request<{ data: HistoryEvent[] }>(
+		config,
+		`/history?ownerPubkey=${encodeURIComponent(ownerPubkey)}`,
+	)
+	return { events: raw.data }
 }
 
 export async function getClaimable(

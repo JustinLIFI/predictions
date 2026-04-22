@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import { VersionedTransaction } from '@solana/web3.js'
@@ -12,8 +12,9 @@ import {
   pollOrderStatus,
 } from '@lifi/prediction-sdk'
 import { predictionClient } from '../lib/client'
+import { ClientOnly } from './ClientOnly'
 
-const JUP_USD_MINT = 'JuprjznTrTSp2UFa3ZBUFgwdAmtZCq4MQCwysN55USD'
+const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
 
 type TradeState = 'idle' | 'confirming' | 'pending' | 'filled' | 'failed'
 
@@ -41,6 +42,7 @@ interface TradeWidgetProps {
 export function TradeWidget({ marketId, onSuccess }: TradeWidgetProps) {
   const { publicKey, signTransaction, connected } = useWallet()
   const { connection } = useConnection()
+  const queryClient = useQueryClient()
 
   const [side, setSide] = useState<'yes' | 'no'>('yes')
   const [amountInput, setAmountInput] = useState('')
@@ -82,24 +84,32 @@ export function TradeWidget({ marketId, onSuccess }: TradeWidgetProps) {
     setTradeState('confirming')
 
     try {
-      const { transaction, order } = await createOrder(predictionClient, {
+      const { transaction, order, txMeta } = await createOrder(predictionClient, {
         ownerPubkey: publicKey.toString(),
         marketId,
         isYes: side === 'yes',
         isBuy: true,
         depositAmount: depositMicroUsdc.toString(),
-        depositMint: JUP_USD_MINT,
+        depositMint: USDC_MINT,
       })
 
       const tx = VersionedTransaction.deserialize(Buffer.from(transaction, 'base64'))
       const signedTx = await signTransaction(tx)
 
-      await connection.sendRawTransaction(signedTx.serialize(), {
-        maxRetries: 0,
-        skipPreflight: true,
+      const signature = await connection.sendRawTransaction(signedTx.serialize(), {
+        maxRetries: 3,
       })
 
       setTradeState('pending')
+
+      await connection.confirmTransaction(
+        {
+          signature,
+          blockhash: txMeta.blockhash,
+          lastValidBlockHeight: txMeta.lastValidBlockHeight,
+        },
+        'confirmed',
+      )
 
       const status = await pollOrderStatus(predictionClient, order.orderPubkey, {
         intervalMs: 2_000,
@@ -109,6 +119,9 @@ export function TradeWidget({ marketId, onSuccess }: TradeWidgetProps) {
       if (status.status === 'filled') {
         setTradeState('filled')
         setFilledOrderPubkey(order.orderPubkey)
+        queryClient.invalidateQueries({
+          queryKey: ['positions', publicKey.toString()],
+        })
         onSuccess?.(order.orderPubkey)
       } else {
         setTradeState('failed')
@@ -327,7 +340,9 @@ export function TradeWidget({ marketId, onSuccess }: TradeWidgetProps) {
 
       {/* CTA */}
       {!connected ? (
-        <WalletMultiButton className="!w-full !justify-center" />
+        <ClientOnly>
+          <WalletMultiButton className="!w-full !justify-center" />
+        </ClientOnly>
       ) : (
         <button
           type="button"
