@@ -175,6 +175,17 @@ export async function getOrderStatus(
 	return mapOrderToStatus(raw)
 }
 
+function isOrderGoneError(err: PredictionApiError): boolean {
+	if (err.status === 404) return true
+	if (err.status !== 400) return false
+	try {
+		const parsed = JSON.parse(err.body) as { code?: unknown }
+		return parsed.code === 'get_order_failed'
+	} catch {
+		return false
+	}
+}
+
 export async function pollOrderStatus(
 	config: ResolvedConfig,
 	orderPubkey: string,
@@ -189,9 +200,11 @@ export async function pollOrderStatus(
 			if (status.status !== 'pending') return status
 		} catch (err) {
 			// Jupiter closes the order account on-chain after a successful fill,
-			// at which point GET /orders/{pubkey} returns 404. Treat that as
-			// filled — a failed order would still be queryable.
-			if (err instanceof PredictionApiError && err.status === 404) {
+			// at which point GET /orders/{pubkey} stops finding it. Older versions
+			// returned 404; the current API returns 400 with code "get_order_failed".
+			// Both mean the same thing: the order is gone because it was filled —
+			// a failed order would still be queryable.
+			if (err instanceof PredictionApiError && isOrderGoneError(err)) {
 				return { status: 'filled' }
 			}
 			throw err
