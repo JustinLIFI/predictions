@@ -1,4 +1,4 @@
-import { formatProbability, type Market, type Position } from '@lifi/prediction-sdk'
+import { formatProbability, type Event, type Market, type Position } from '@lifi/prediction-sdk'
 
 const formatUsd = (microUsdc: number): string => {
   const dollars = microUsdc / 1_000_000
@@ -71,4 +71,77 @@ export function positionsToContext(
   })
 
   return [header, '', ...bullets].join('\n')
+}
+
+export interface Candidate {
+  n: number
+  marketId: string
+  title: string
+  buyYesPriceUsd: number
+  buyNoPriceUsd: number
+}
+
+export interface CandidateCatalog {
+  candidates: Candidate[]
+  contextString: string
+}
+
+function durationToClose(unixSeconds: number): string {
+  if (!unixSeconds) return 'unknown close'
+  const diff = unixSeconds * 1000 - Date.now()
+  if (diff <= 0) return 'closed'
+  const days = Math.floor(diff / 86_400_000)
+  if (days >= 2) return `closes in ${days}d`
+  const hours = Math.floor(diff / 3_600_000)
+  if (hours >= 1) return `closes in ${hours}h`
+  const mins = Math.max(1, Math.floor(diff / 60_000))
+  return `closes in ${mins}m`
+}
+
+function formatVolumeCompact(microUsdc: number): string {
+  const usd = microUsdc / 1_000_000
+  if (usd >= 1_000_000) return `$${(usd / 1_000_000).toFixed(1)}M`
+  if (usd >= 1_000) return `$${(usd / 1_000).toFixed(1)}K`
+  return `$${usd.toFixed(0)}`
+}
+
+export function buildCandidateCatalog(
+  events: Event[],
+  max: number,
+  heldMarketIds: Set<string>,
+): CandidateCatalog {
+  const byId = new Map<string, { market: Market; category: string }>()
+  for (const event of events) {
+    for (const market of event.markets ?? []) {
+      if (market.status !== 'open') continue
+      if (byId.has(market.marketId)) continue
+      byId.set(market.marketId, { market, category: event.category })
+    }
+  }
+
+  const sorted = Array.from(byId.values()).sort(
+    (a, b) => b.market.pricing.volume - a.market.pricing.volume,
+  )
+  const top = sorted.slice(0, max)
+
+  const candidates: Candidate[] = top.map(({ market }, i) => ({
+    n: i + 1,
+    marketId: market.marketId,
+    title: market.title,
+    buyYesPriceUsd: market.pricing.buyYesPriceUsd,
+    buyNoPriceUsd: market.pricing.buyNoPriceUsd,
+  }))
+
+  const contextString = top
+    .map(({ market, category }, i) => {
+      const yes = formatProbability(market.pricing.buyYesPriceUsd)
+      const no = formatProbability(market.pricing.buyNoPriceUsd)
+      const vol = formatVolumeCompact(market.pricing.volume)
+      const close = durationToClose(market.closeTime)
+      const held = heldMarketIds.has(market.marketId) ? ' · HELD' : ''
+      return `[${i + 1}] ${market.title} · YES ${yes} (NO ${no}) · vol ${vol} · ${close} · ${category}${held}`
+    })
+    .join('\n')
+
+  return { candidates, contextString }
 }

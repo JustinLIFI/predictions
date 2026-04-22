@@ -14,6 +14,12 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export default function Home() {
   const [selectedMarketId, setSelectedMarketId] = useState<string | null>(null)
+  const [preferredSide, setPreferredSide] = useState<'yes' | 'no' | undefined>(undefined)
+
+  function handleSelectMarket(marketId: string, side?: 'yes' | 'no') {
+    setSelectedMarketId(marketId)
+    setPreferredSide(side)
+  }
 
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ background: 'var(--ink-0)' }}>
@@ -56,7 +62,7 @@ export default function Home() {
           {/* Left: market browser (scrolls internally) */}
           <section className="flex-1 min-w-0 flex flex-col gap-3 overflow-hidden">
             <SectionLabel>Markets</SectionLabel>
-            <MarketBrowser onSelectMarket={setSelectedMarketId} selectedMarketId={selectedMarketId} />
+            <MarketBrowser onSelectMarket={handleSelectMarket} selectedMarketId={selectedMarketId} />
           </section>
 
           {/* Right sidebar: trade + positions */}
@@ -67,7 +73,11 @@ export default function Home() {
             <div className="flex flex-col gap-3">
               <SectionLabel>Trade</SectionLabel>
               {selectedMarketId ? (
-                <TradeWidget marketId={selectedMarketId} />
+                <TradeWidget
+                  key={`${selectedMarketId}-${preferredSide ?? ''}`}
+                  marketId={selectedMarketId}
+                  initialSide={preferredSide}
+                />
               ) : (
                 <div
                   className="lifi-panel flex items-center justify-center"

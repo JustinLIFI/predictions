@@ -1,15 +1,23 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useWallet } from '@solana/wallet-adapter-react'
 import {
   formatProbability,
   formatPrice,
   getEvents,
   searchEvents,
 } from '@lifi/prediction-sdk'
-import type { Event, EventCategory, Market } from '@lifi/prediction-sdk'
+import type {
+  Event,
+  EventCategory,
+  GetPositionsResult,
+  Market,
+} from '@lifi/prediction-sdk'
 import { predictionClient } from '../lib/client'
+import { AlphaButton } from './AlphaButton'
+import { AlphaModal } from './AlphaModal'
 import { AskAIButton } from './AskAIButton'
 import { AskAIModal } from './AskAIModal'
 
@@ -785,7 +793,7 @@ function EventCard({
 }
 
 interface MarketBrowserProps {
-  onSelectMarket: (marketId: string) => void
+  onSelectMarket: (marketId: string, side?: 'yes' | 'no') => void
   selectedMarketId?: string | null
 }
 
@@ -795,6 +803,13 @@ export function MarketBrowser({ onSelectMarket, selectedMarketId }: MarketBrowse
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [askingAbout, setAskingAbout] = useState<Market | null>(null)
+  const [alphaOpen, setAlphaOpen] = useState(false)
+  const queryClient = useQueryClient()
+  const { publicKey } = useWallet()
+  const cachedPositions =
+    publicKey &&
+    queryClient.getQueryData<GetPositionsResult>(['positions', publicKey.toString()])
+  const positionsForAlpha = cachedPositions?.positions ?? []
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearch(search.trim()), 300)
@@ -848,6 +863,13 @@ export function MarketBrowser({ onSelectMarket, selectedMarketId }: MarketBrowse
           borderBottom: '1px solid var(--ink-300)',
         }}
       >
+        <div
+          className="flex items-center justify-between"
+          style={{ marginBottom: 10 }}
+        >
+          <span className="eyebrow">market_feed</span>
+          <AlphaButton onClick={() => setAlphaOpen(true)} disabled={alphaOpen} />
+        </div>
         <div
           className="lifi-field flex items-center gap-2"
           style={{ padding: '0 12px', height: 40, marginBottom: isSearching ? 0 : 12 }}
@@ -1000,6 +1022,13 @@ export function MarketBrowser({ onSelectMarket, selectedMarketId }: MarketBrowse
       </div>
       {askingAbout && (
         <AskAIModal market={askingAbout} onClose={() => setAskingAbout(null)} />
+      )}
+      {alphaOpen && (
+        <AlphaModal
+          onClose={() => setAlphaOpen(false)}
+          onSelectMarket={(id, side) => onSelectMarket(id, side)}
+          positions={positionsForAlpha}
+        />
       )}
     </div>
   )
