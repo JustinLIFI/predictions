@@ -108,25 +108,40 @@ Upstream (for reference only, never called directly by SDK):
 - start, end: pagination
 
 **Trading:**
-- POST /orders                         — create buy order, returns unsigned tx
-- GET /orders/status/:orderPubkey      — poll fill status
+- POST /orders                         — create buy OR sell order, returns unsigned tx
+- GET /orders/:orderPubkey             — fetch order data (status, filledContracts, avgFillPriceUsd…)
 - GET /positions/:ownerPubkey          — all open positions for wallet
-- POST /orders/sell                    — create sell order (close position)
+- DELETE /positions/:positionPubkey    — close entire position (convenience, full-size sell)
 - GET /history/:ownerPubkey            — full trading history
+
+Note: there is NO `/orders/sell` endpoint. Sells go through `POST /orders` with
+`isBuy: false` and a `positionPubkey` instead of a `marketId`.
 
 **Payouts:**
 - GET /vault/claimable/:ownerPubkey    — positions ready to claim
 - POST /vault/claim                    — claim winning payout
 
-### POST /orders request body:
+### POST /orders request body (buy):
 ```ts
 {
   ownerPubkey: string       // wallet public key (base58)
   marketId: string          // from market data
   isYes: boolean            // true = buy YES, false = buy NO
-  isBuy: boolean            // always true for opening
+  isBuy: true               // true when opening/adding to a position
   depositAmount: string     // in micro-USDC (e.g. "2000000" = $2.00)
   depositMint: string       // JupUSD or USDC mint address
+}
+```
+
+### POST /orders request body (sell):
+```ts
+{
+  ownerPubkey: string       // wallet public key (base58)
+  positionPubkey: string    // from GET /positions — identifies what to sell
+  isYes: boolean            // must match position.side
+  isBuy: false              // false = closing / reducing a position
+  contracts: number         // integer, how many contracts to sell
+  depositMint: string       // USDC mint address
 }
 ```
 
@@ -146,15 +161,23 @@ Upstream (for reference only, never called directly by SDK):
 }
 ```
 
-### GET /orders/status/:orderPubkey response:
+### GET /orders/:orderPubkey response (relevant fields):
 ```ts
 {
+  pubkey: string
   status: 'pending' | 'filled' | 'failed'
-  filledContracts?: number
-  avgFillPrice?: number
-  fees?: number
+  filledContracts: string       // u64 — call Number() before use
+  avgFillPriceUsd: string       // u64 micro-USDC — Number() then formatPrice()
+  filledAt: number              // unix seconds; 0 while pending
+  // …plus market/event metadata
 }
 ```
+
+NOTE: there is NO `/orders/status/:pubkey` endpoint. Use `/orders/:pubkey`.
+
+The order account is closed on-chain after a successful fill, so this endpoint
+returns 404 once the keeper completes the order. The SDK's `pollOrderStatus`
+treats a 404 as `{ status: 'filled' }` for that reason.
 
 ---
 

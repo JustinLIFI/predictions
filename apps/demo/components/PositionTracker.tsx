@@ -15,6 +15,7 @@ import type { GetMarketResult, Market, Position } from '@lifi/prediction-sdk'
 import { predictionClient } from '../lib/client'
 import { AskAIButton } from './AskAIButton'
 import { PortfolioAIModal } from './PortfolioAIModal'
+import { SellWidget } from './SellWidget'
 
 function StatField({ label, value }: { label: string; value: string }) {
   return (
@@ -29,10 +30,14 @@ function PositionRow({
   position,
   onClaim,
   claiming,
+  sellOpen,
+  onToggleSell,
 }: {
   position: Position
   onClaim: (positionPubkey: string) => void
   claiming: boolean
+  sellOpen: boolean
+  onToggleSell: (positionPubkey: string | null) => void
 }) {
   const { data: marketData } = useQuery({
     queryKey: ['market', position.marketId],
@@ -44,6 +49,8 @@ function PositionRow({
   const value = formatPrice(position.valueUsd)
   const payout = formatPrice(position.payoutUsd ?? 0)
   const pnlPositive = pnl >= 0
+  const isOpenPosition =
+    !position.claimable && !position.claimed && position.contracts > 0
 
   return (
     <div className="lifi-card" style={{ padding: 14 }}>
@@ -130,7 +137,28 @@ function PositionRow({
         {position.claimed && (
           <span style={{ fontSize: 11, color: 'var(--ink-500)', fontStyle: 'italic' }}>Claimed</span>
         )}
+
+        {isOpenPosition && (
+          <button
+            type="button"
+            onClick={() =>
+              onToggleSell(sellOpen ? null : position.positionPubkey)
+            }
+            className="btn-secondary"
+            style={{ padding: '6px 14px', fontSize: 11, borderRadius: 8 }}
+          >
+            {sellOpen ? 'Cancel' : 'Sell'}
+          </button>
+        )}
       </div>
+
+      {isOpenPosition && sellOpen && (
+        <SellWidget
+          position={position}
+          onCancel={() => onToggleSell(null)}
+          onSuccess={() => onToggleSell(null)}
+        />
+      )}
     </div>
   )
 }
@@ -140,6 +168,7 @@ export function PositionTracker() {
   const { connection } = useConnection()
   const queryClient = useQueryClient()
   const [claimingPubkey, setClaimingPubkey] = useState<string | null>(null)
+  const [sellingPubkey, setSellingPubkey] = useState<string | null>(null)
   const [askContext, setAskContext] = useState<{ positions: Position[]; markets: Market[] } | null>(
     null,
   )
@@ -269,6 +298,8 @@ export function PositionTracker() {
             position={position}
             onClaim={handleClaim}
             claiming={claimingPubkey === position.positionPubkey}
+            sellOpen={sellingPubkey === position.positionPubkey}
+            onToggleSell={setSellingPubkey}
           />
         ))}
       </div>

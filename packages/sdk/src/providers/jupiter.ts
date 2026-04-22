@@ -144,11 +144,35 @@ export async function createOrder(
 	})
 }
 
+interface RawOrder {
+	pubkey: string
+	status: 'pending' | 'filled' | 'failed'
+	filledContracts?: string
+	avgFillPriceUsd?: string
+	filledAt?: number
+}
+
+function mapOrderToStatus(raw: RawOrder): OrderStatus {
+	const filled =
+		raw.filledContracts !== undefined ? Number(raw.filledContracts) : undefined
+	const avg =
+		raw.avgFillPriceUsd !== undefined ? Number(raw.avgFillPriceUsd) : undefined
+	return {
+		status: raw.status,
+		filledContracts: filled,
+		avgFillPrice: avg,
+	}
+}
+
 export async function getOrderStatus(
 	config: ResolvedConfig,
 	orderPubkey: string,
 ): Promise<OrderStatus> {
-	return request<OrderStatus>(config, `/orders/status/${encodeURIComponent(orderPubkey)}`)
+	const raw = await request<RawOrder>(
+		config,
+		`/orders/${encodeURIComponent(orderPubkey)}`,
+	)
+	return mapOrderToStatus(raw)
 }
 
 export async function pollOrderStatus(
@@ -160,8 +184,18 @@ export async function pollOrderStatus(
 	const deadline = Date.now() + timeoutMs
 
 	while (Date.now() < deadline) {
-		const status = await getOrderStatus(config, orderPubkey)
-		if (status.status !== 'pending') return status
+		try {
+			const status = await getOrderStatus(config, orderPubkey)
+			if (status.status !== 'pending') return status
+		} catch (err) {
+			// Jupiter closes the order account on-chain after a successful fill,
+			// at which point GET /orders/{pubkey} returns 404. Treat that as
+			// filled — a failed order would still be queryable.
+			if (err instanceof PredictionApiError && err.status === 404) {
+				return { status: 'filled' }
+			}
+			throw err
+		}
 		await new Promise<void>((resolve) => setTimeout(resolve, intervalMs))
 	}
 
@@ -172,9 +206,11 @@ export async function createSellOrder(
 	config: ResolvedConfig,
 	params: CreateSellOrderParams,
 ): Promise<CreateOrderResult> {
-	return request<CreateOrderResult>(config, '/orders/sell', {
+	// Jupiter exposes sells via the same POST /orders endpoint with isBuy=false
+	// and a positionPubkey instead of a marketId.
+	return request<CreateOrderResult>(config, '/orders', {
 		method: 'POST',
-		body: JSON.stringify(params),
+		body: JSON.stringify({ ...params, isBuy: false }),
 	})
 }
 
