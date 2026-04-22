@@ -13,6 +13,7 @@ import {
 } from '@lifi/prediction-sdk'
 import { predictionClient } from '../lib/client'
 import { ClientOnly } from './ClientOnly'
+import { MarketChart } from './MarketChart'
 
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
 
@@ -258,6 +259,9 @@ export function TradeWidget({ marketId, onSuccess }: TradeWidgetProps) {
           NO {formatProbability(market.pricing.buyNoPriceUsd)}
         </button>
       </div>
+
+      {/* Probability history */}
+      <MarketChart market={market} />
 
       {/* Amount input */}
       <div
